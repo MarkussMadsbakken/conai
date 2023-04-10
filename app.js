@@ -8,8 +8,8 @@ var port = 3000
 var express = require('express');
 var app = express();
 
-var sharp = require('sharp'); //image processing
-var multer = require('multer'); //file upload
+//var sharp = require('sharp'); //image processing
+//var multer = require('multer'); //file upload
 
 
 //starte server
