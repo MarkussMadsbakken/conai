@@ -36,9 +36,13 @@ class Game {
         this.boardTexture = PIXI.Texture.from('assets/board.png') //boardTexture
         this.holeTexture = PIXI.Texture.from('assets/hole.png')
 
-        this.padding = 5 //padding mellom elementer i prosent av total størrelse av canvas
+        this.padding = 1 //padding mellom elementer i prosent av total størrelse av canvas
+
+        //initiere sprites
+        this.board = new PIXI.Sprite(this.boardTexture);
+        this.hole = new PIXI.Sprite(this.holeTexture); 
     
-        this.draw();
+        this.resize(); //kaller resize når spillet starter
     }
 
     place(){
@@ -47,50 +51,60 @@ class Game {
 
     draw(){
 
-        //initiere sprites
-        let board = new PIXI.Sprite(this.boardTexture);
-        let hole = new PIXI.Sprite(this.holeTexture); 
+        backgroundContainer.removeChildren(); //tømmer backgroundcontainer
 
         //hole.blendMode = PIXI.BLEND_MODES.ERASE;
-        console.log(backgroundContainer.width)
-        //draw background
-        backgroundContainer.addChild(board);
-        backgroundContainer.addChild(hole);
 
-        
-        console.log(backgroundContainer.width)
-        console.log("ak")
-        
+        //draw background
+        backgroundContainer.addChild(this.board);
+        backgroundContainer.addChild(this.hole);
+
+        for (let x = 0; x < this.width; x++){ //looper igjennom lengden av brettet
+            
+            
+            for (let y = 0; y < this.height; y++){ //looper igjennom høyden av brettet
+            }
+        }
+
+
+
         //this.resize();
     }
 
     resize(){
-        //finner det minste størrelsesforholdet
-        
+
+        //resetter plasseringen til bakgrunnen
+        this.board.x = 0
+        this.board.y = 0
+
+        //finner hvor størrelsen til padding
+        let paddingx = (this.width + 2) * ((app.screen.width / 100) * this.padding)
+        let paddingy = (this.height + 2) * ((app.screen.height / 100) * this.padding)
+
         //finner forholdet mellom høyde og lengde
-        let widthRatio = Math.floor(app.screen.width/this.width);
+        let widthRatio = Math.floor(app.screen.width/this.width)
         let heightRatio = Math.floor(app.screen.height/this.height);
 
+        console.log(widthRatio)
+
         //endrer størrelsen til gamebackgroundContainer og brettets bakgrunn
-        if (widthRatio > heightRatio){ //hvis bredden er større
+        if (widthRatio > heightRatio){ //hvis bredden er større 
             //bredden til sirklene må være lik høyden
-            backgroundContainer.height = heightRatio*this.height;
-            backgroundContainer.width = heightRatio*this.width;
+            this.board.height = heightRatio*this.height;
+            this.board.width = heightRatio*this.width;
+
 
         } else { //hvis høyden er større
             //høyden til sirklene må være lik bredden
-            backgroundContainer.width = widthRatio*this.width
-            backgroundContainer.height = widthRatio*this.height
+            this.board.width = widthRatio*this.width;
+            this.board.height = widthRatio*this.height;
         }
-        
-        console.log(backgroundContainer.width)
 
-        //sjekke hva som begrenser størrelsen, for å maksimere backgroundContainer
-        //endre backgroundContainer størrelse, for å best maksimere brettstørrelsen
+        //flytter brettet til midten av skjermen
+        this.board.x -= (this.board.width/2) - (app.renderer.width/2);
+        this.board.y -= (this.board.height/2) - (app.renderer.height/2);
 
-        // flytt backgroundContainer til midten av skjermen
-        //backgroundContainer.x = app.screen.width / 2;
-        //backgroundContainer.y = app.screen.height / 2;
+        this.draw(); //tegner brettet
 
 
 
@@ -106,16 +120,20 @@ class Game {
 }
 
 function startGame(){
-    var game = new Game(7,6,players)
-    /*
-    var resizeTimeout;
-    window.onresize = function(){
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(game.resize,500);
-    }
-    */
-    window.addEventListener("resize",function(){
+
+    var game = new Game(7,6,players) //initierer ett nytt spill
+
+    //koden under håndterer resize. Resize må skje med delay, for å unngå å resize til feil dimensjoner
+
+    function resizeHandler(){ //funksjon for å calle resize etter delay
         game.resize();
+    }
+
+    //resizer etter 500ms
+    var resizeTimeout;
+    window.addEventListener("resize",function(){
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(resizeHandler,500); //kaller resizehandler når 500ms har gått uten resize
     })
 
     /*
@@ -123,8 +141,8 @@ function startGame(){
         game.render();
     })
     */
-
 }
+
 
 startGame();
 
