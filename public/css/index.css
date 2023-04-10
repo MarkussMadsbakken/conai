@@ -1,0 +1,11 @@
+body {
+    margin: 0;
+    font-family: Helvetica;
+    overflow-y: hidden; /* Hide vertical scrollbar */
+    overflow-x: hidden; /* Hide horizontal scrollbar */
+}
+
+#game{
+    size: 100%;
+    
+}
