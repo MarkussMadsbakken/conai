@@ -16,7 +16,6 @@ app.stage.addChild(backgroundContainer);
 
 //graphics init
 const graphics = new PIXI.Graphics();
-backgroundContainer.addChild(graphics);
 
 
 //textures
@@ -24,15 +23,9 @@ const redTexture = PIXI.Texture.from('assets/red.png');
 
 
 
-players = {
-    1: "assets/red.png",
-    2: "assets/black.png"
-}
-
-
-
 class Game {
     constructor(width, height,players){
+        console.log(players)
         this.width = width;
         this.height = height;
         this.players = players; 
@@ -43,10 +36,21 @@ class Game {
         this.column = 0
         this.row = 0
 
+        this.haswon = false;
+
+        this.winLength = 4
+
+        this.turn = 1 //man starter på 1, 0 er reservert for hull
+
         //initiere sprites
         this.board = new PIXI.Sprite(this.boardTexture);
 
+        console.log(this.board);
+
+        console.log(this.players)
+
         Object.keys(this.players).forEach(player => { //lagrer players i form av sprite
+            console.log(this.players[player])
             this.players[player] = PIXI.Texture.from(this.players[player])
         });
 
@@ -60,36 +64,36 @@ class Game {
             }
         }
 
-        this.boardVals[1][5] = 2
+        console.log(this.boardVals) //debug
 
-        console.log(this.boardVals)
-
-        app.stage.interactive = true;
+        app.stage.interactive = true; //sett interactivity 
 
         app.stage.addEventListener("pointermove", (e) => {
             this.pointerMove(e.global);
         })
 
         app.stage.addEventListener("click", (e) =>{
-            let player = 1
-            this.place(e.global,player);
+            this.place(e.global,this.turn);
         })
     
         this.resize(); //kaller resize når spillet starter
     }
 
     pointerMove(pos){
+
+        if (this.haswon) {return;} //ikke oppdater når noen har vunnet
         //finner hvilken kolonne musen er over
         this.column = this.getColumn(pos);
 
         //sjekk alle verdiene fra bunenen av kolonnen
-        for (let i = 0; i < this.height + 1; i++){
-            if (this.boardVals[this.column][this.height-i] == 0){
+        for (let i = 0; i < this.height+1; i++){
+            if (this.boardVals[this.column][this.height-i] == 0){ //move er valid
                 //tegner brettet FINN EN BEDRE LØSNING
+
                 this.draw();
                 
                 //tegner en texture for å indikere plass
-                let waitingSprite = new PIXI.Sprite(this.players[1])
+                let waitingSprite = new PIXI.Sprite(this.players[this.turn])
                 let padding = (this.board.width/100) * this.padding
 
                 let newSize = (this.board.width - ((this.width + 2) * padding)) / this.width
@@ -105,7 +109,8 @@ class Game {
 
                 this.row = this.height-i
 
-                return
+                return;
+
             }
         }
         //plasser en grå/waiting texture
@@ -113,10 +118,38 @@ class Game {
 
     }
 
-    place(pos,player){
+    nextPlayer(){
+        if (this.turn == Object.keys(this.players).length) { //
+            this.turn = 1;
+
+        } else {
+            this.turn += 1
+        }
+    }
+
+    place(pos,player){ //funksjon for å plassere brikke
+
+        if (this.haswon) {return;} //ikke oppdater når noen har vunnet
+
+        //sjekke om et move er valid
+        if (!this.boardVals[this.column][this.row] == 0){ //hvis plassen er fylt
+            return; //move invalid
+        }
+
+        if (this.boardVals[this.column][this.row + 1] == 0){ //hvis det ikke er en brikke under
+            return //move invalid
+        }
+
         this.boardVals[this.column][this.row] = player //vi antar at spilleren har hoveret over brettet
+
+        //neste player
+        this.nextPlayer();
+
         if (this.row == 0){this.draw(); return;}; //hvis row er 0, draw og return
         this.pointerMove(pos); //dette kaller draw hvis row ikke er 0
+
+        this.checkWin(); //sjekker om en spiller har vunnet
+
     }
 
     getColumn(pos){
@@ -130,7 +163,7 @@ class Game {
             }
         }
 
-        return column;
+        return column;  
     }
 
     draw(){
@@ -179,10 +212,27 @@ class Game {
                 }
             }
         }
+    }
 
+    drawWin(winx,winy){
+        graphics.lineStyle(5,0xFFFFFF,1);
 
+        let padding = (this.board.width/100) * this.padding
+        let circleSize = (this.board.width - ((this.width + 2) * padding)) / this.width
+        
+        let startx = (winx[0] * (((this.board.width - (padding)) / this.width))) + this.board.x + padding + (circleSize/2)
+        let endx = (winx[1] * (((this.board.width - (padding)) / this.width))) + this.board.x + padding + (circleSize/2)
 
-        //this.resize();
+        let starty = (winy[0] * (((this.board.height - (padding)) / this.height))) + this.board.y + padding + (circleSize/2)
+        let endy = (winy[1] * (((this.board.height - (padding)) / this.height))) + this.board.y + padding + (circleSize/2)
+        
+        graphics.moveTo(startx,starty);
+        graphics.lineTo(endx,endy);
+
+        this.draw(); //tegn for å unngå highlight av neste piece
+
+        backgroundContainer.addChild(graphics)
+
     }
 
     resize(){
@@ -219,19 +269,89 @@ class Game {
         this.draw(); //tegner brettet
 
     }
-    render(){ 
+    
+    checkWin(){
+        let winx = []
+        let winy = []
 
-        for (let x = 0; x < this.width; x++){ //looper igjennom lengden av brettet
-            
-            for (let y = 0; y < this.height; y++){ //looper igjennom høyden av brettet
+
+        //sjekker horisontal win
+        for (let y = 0; y < this.height; y++){
+            for (let x = 0; x < this.width - this.winLength+1; x++){ //+1??? Vet ikke hvorfor, men fungerer ikke uten
+                if (this.boardVals[x][y] == this.boardVals[x+1][y] && this.boardVals[x][y] == this.boardVals[x+2][y] && this.boardVals[x][y]==this.boardVals[x+3][y] && !this.boardVals[x][y] == 0){ //endre til for løkke!!!
+                    winx = [x,x+3];
+                    winy = [y,y];
+
+                    this.haswon = true;
+                }
             }
         }
+
+        //sjekker vertikal win
+        for (let x = 0; x < this.width; x++){
+            for (let y = 0; y < this.height; y++){
+                if (this.boardVals[x][y] == this.boardVals[x][y+1] && this.boardVals[x][y] == this.boardVals[x][y+2] && this.boardVals[x][y] == this.boardVals[x][y+3] && !this.boardVals[x][y] == 0){
+                    winx = [x,x];
+                    winy = [y,y+3];
+
+                    this.haswon = true;
+                }
+            }
+        }
+
+        //sjekker skrå win
+        for (let x = 0; x < this.width; x++){
+            for (let y = 0; y < this.height; y++){
+
+                //skrå opp til høyre
+                if (y > this.winLength-2 && x < this.width - (this.winLength-1)){
+                    //console.log(this.boardVals[x][y] + "" + this.boardVals[x+1][y-1] + "" + this.boardVals[x+2][y-2] + "" + this.boardVals[x+3][y-3]) debug
+                    if (this.boardVals[x][y] == this.boardVals[x+1][y-1] && this.boardVals[x][y] == this.boardVals[x+2][y-2] && this.boardVals[x][y] == this.boardVals[x+3][y-3] && !this.boardVals[x][y] == 0){
+                        winx = [x,x+3];
+                        winy = [y,y-3];
+
+                        this.haswon = true;
+                    }
+                }
+                
+                //skrå opp til venstre
+                if(y > this.winLength - 2 && x > this.winLength - 1){
+                    if (this.boardVals[x][y] == this.boardVals[x-1][y-1] && this.boardVals[x][y] == this.boardVals[x-2][y-2] && this.boardVals[x][y] == this.boardVals[x-3][y-3] && !this.boardVals[x][y] == 0){
+                        winx = [x,x-3];
+                        winy = [y,y-3];
+
+                        this.haswon = true;
+                    }
+                }
+            }
+        }
+        
+        if (this.haswon) {this.drawWin(winx,winy);}
+
+        return;
+    }
+
+    delete(){
+        backgroundContainer.removeChildren();
+
+        Object.getOwnPropertyNames(this).forEach(atr => {
+            delete this[atr]
+        })
+        console.log(this)
     }
 }
 
+var game = 0
+
 function startGame(){
 
-    var game = new Game(7,6,players) //initierer ett nytt spill
+    players = {
+        1: "assets/red.png",
+        2: "assets/black.png"
+    }
+    
+
+    game = new Game(7,6,players) //initierer ett nytt spill
 
     //koden under håndterer resize. Resize må skje med delay, for å unngå å resize til feil dimensjoner
 
@@ -257,6 +377,15 @@ function startGame(){
 
 
 startGame();
+
+function restartGame(){
+    game.delete();
+    delete game
+
+    console.log(game)
+    
+    startGame();
+}
 
 
 //resizer fungerer ikke alltid i enkelte ekstreme tilfeller
