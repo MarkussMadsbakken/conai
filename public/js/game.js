@@ -41,6 +41,7 @@ class Game {
 
         this.padding = 2 //padding mellom elementer i prosent av total størrelse av canvas
         this.column = 0
+        this.row = 0
 
         //initiere sprites
         this.board = new PIXI.Sprite(this.boardTexture);
@@ -59,40 +60,77 @@ class Game {
             }
         }
 
+        this.boardVals[1][5] = 2
+
         console.log(this.boardVals)
 
         app.stage.interactive = true;
 
         app.stage.addEventListener("pointermove", (e) => {
-            this.pointerMove(e.global)
+            this.pointerMove(e.global);
         })
 
         app.stage.addEventListener("click", (e) =>{
-            console.log(e.global)
+            let player = 1
+            this.place(e.global,player);
         })
     
         this.resize(); //kaller resize når spillet starter
     }
 
     pointerMove(pos){
-
-        //endrer posijonen til relativt i forhold til brettet.
-        pos["x"] -= this.board.x
-        
         //finner hvilken kolonne musen er over
-        this.column = 0
-        for (let i = 0; i < this.width; i++){ //for alle kolonnene
-            if (pos["x"] > i * (((this.board.width - ((this.board.width/100) * this.padding)) / this.width)) + ((this.board.width/100) * this.padding)/2){ //bruker samme logikk som blir brukt til å rendere brikkene
-                this.column = i //setter kollonnen til det høyeste i-verdien
+        this.column = this.getColumn(pos);
+
+        //sjekk alle verdiene fra bunenen av kolonnen
+        for (let i = 0; i < this.height + 1; i++){
+            if (this.boardVals[this.column][this.height-i] == 0){
+                //tegner brettet FINN EN BEDRE LØSNING
+                this.draw();
+                
+                //tegner en texture for å indikere plass
+                let waitingSprite = new PIXI.Sprite(this.players[1])
+                let padding = (this.board.width/100) * this.padding
+
+                let newSize = (this.board.width - ((this.width + 2) * padding)) / this.width
+
+                waitingSprite.width = newSize
+                waitingSprite.height = newSize
+
+                waitingSprite.alpha = 0.5 //transparent
+
+                waitingSprite.x = (this.column * (((this.board.width - (padding)) / this.width))) + this.board.x + padding
+                waitingSprite.y = ((this.height-i) * (((this.board.height - (padding)) / this.height))) + this.board.y + padding
+                backgroundContainer.addChild(waitingSprite)
+
+                this.row = this.height-i
+
+                return
             }
         }
+        //plasser en grå/waiting texture
 
-        console.log(this.column)
 
     }
 
-    place(){
-        return
+    place(pos,player){
+        this.boardVals[this.column][this.row] = player //vi antar at spilleren har hoveret over brettet
+        if (this.row == 0){this.draw(); return;}; //hvis row er 0, draw og return
+        this.pointerMove(pos); //dette kaller draw hvis row ikke er 0
+    }
+
+    getColumn(pos){
+        //endrer posijonen til relativt i forhold til brettet.
+        pos["x"] -= this.board.x
+        
+        let column = 0
+        for (var i = 0; i < this.width; i++){ //for alle kolonnene
+            if (pos["x"] > i * (((this.board.width - ((this.board.width/100) * this.padding)) / this.width)) + ((this.board.width/100) * this.padding)/2){ //bruker samme logikk som blir brukt til å rendere brikkene
+                column = i //setter kollonnen til det høyeste i-verdien
+            }
+        }
+
+        return column;
     }
 
     draw(){
@@ -129,7 +167,6 @@ class Game {
                     backgroundContainer.addChild(hole)
 
                 } else { //det er en brikke i hullet
-                    console.log(this.boardVals[x][y])
                     let piece = new PIXI.Sprite(this.players[this.boardVals[x][y]])
                     piece.width = newSize
                     piece.height = newSize
