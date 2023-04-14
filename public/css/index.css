@@ -6,6 +6,84 @@ body {
 }
 
 #game{
-    size: 100%;
+
+    width: 80vw;
+    height: 80vh;
+
+    pointer-events: auto;
+}
+
+/* popup */
+
+#endGamePopup{
+    outline: none;
+
+    background-color: #fcfcfc;
+    z-index: 1;
+    border-radius: 2px;
+    border: 1px solid black; 
+    position: fixed;
+    display: flex;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%; 
+    height: 50%;
+
+    align-items: center;
+    flex-direction: column;
+
+    opacity: 0;
+    pointer-events: none;
+
+    user-select: none;
+
+    transition: opacity 0.5s ease-in-out;
+}
+
+#messageText{
+    margin-top: 4vh;
+    text-align: center;
+    width: 80%;
+}
+
+#startGame{
+    margin-top: 4vh;
+    background-color: #dadada;  
+    border: none;
+    width: 25vw;
+    height: 10vh;
+    text-align: center;
+    font-size: 12pt;
     
+    transition: background-color 0.2s ease-in-out;
+
+    -webkit-transition: box-shadow 0.4 ease-out;
+    transition: box-shadow 0.4s ease-out;
+}
+
+#startGame:hover{
+    background-color: #adadad;
+}
+
+#startGame:focus{
+    outline-width: 0;
+    background-color: #adadad;
+}   
+
+.field{
+    padding-top: 6px;
+    margin-top: 2vh;
+    height: 4vh;
+    border: none;
+    text-align:left;
+    padding-bottom: 8px;
+    text-indent: 10px;
+    width: 25vw;
+
+    background-color: #dadada;
+}
+
+.field:focus{
+    outline-width: 0;
 }

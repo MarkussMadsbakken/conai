@@ -1,7 +1,7 @@
 let window_width = window.innerWidth;
 let window_heigth = window.innerHeight;
 
-const app = new PIXI.Application({ background: '#cccccc ', resizeTo: window, antialias: true});
+const app = new PIXI.Application({ background: '#cccccc ', resizeTo: document.getElementById("game"), antialias: true});
 app.ticker.maxFPS = 30;
 
 document.getElementById("game").appendChild(app.view);
@@ -45,12 +45,7 @@ class Game {
         //initiere sprites
         this.board = new PIXI.Sprite(this.boardTexture);
 
-        console.log(this.board);
-
-        console.log(this.players)
-
         Object.keys(this.players).forEach(player => { //lagrer players i form av sprite
-            console.log(this.players[player])
             this.players[player] = PIXI.Texture.from(this.players[player])
         });
 
@@ -129,6 +124,8 @@ class Game {
 
     place(pos,player){ //funksjon for å plassere brikke
 
+        console.log(this.boardVals)
+
         if (this.haswon) {return;} //ikke oppdater når noen har vunnet
 
         //sjekke om et move er valid
@@ -145,7 +142,7 @@ class Game {
         //neste player
         this.nextPlayer();
 
-        if (this.row == 0){this.draw(); return;}; //hvis row er 0, draw og return
+        if (this.row == 0){this.draw(); this.checkWin(); return;}; //hvis row er 0, draw og return
         this.pointerMove(pos); //dette kaller draw hvis row ikke er 0
 
         this.checkWin(); //sjekker om en spiller har vunnet
@@ -232,6 +229,8 @@ class Game {
         this.draw(); //tegn for å unngå highlight av neste piece
 
         backgroundContainer.addChild(graphics)
+
+        this.endGame();
 
     }
 
@@ -325,19 +324,76 @@ class Game {
                 }
             }
         }
+
+        //sjekker om brettet er fullt
+        let found = false
+        for (let x = 0; x < this.width; x++){
+            for (let y = 0; y < this.height; y++){
+                if (this.boardVals[x][y] == 0){ //his brettet er fullt, break og return
+                    found = true
+                    break
+                }
+            }
+            if (found){
+                break
+            }
+        }
+
+        if (doEval){evaluate();} //evaluer posisjonen
+
+        if (found == false){
+            this.endGame();
+        }
+        
         
         if (this.haswon) {this.drawWin(winx,winy);}
 
         return;
     }
 
-    delete(){
-        backgroundContainer.removeChildren();
+    restart(width, height,players){
+        this.width = width
+        this.height = height
+        this.players = players
 
-        Object.getOwnPropertyNames(this).forEach(atr => {
-            delete this[atr]
-        })
-        console.log(this)
+        this.padding = 2 //padding mellom elementer i prosent av total størrelse av canvas
+        this.column = 0
+        this.row = 0
+
+        this.haswon = false;
+
+        this.winLength = 4
+
+        this.turn = 1 //man starter på 1, 0 er reservert for hull
+
+        //lager lister som lagrer brikkene i spill
+        this.boardVals = {}
+        for (let x = 0; x < this.width; x++){
+            this.boardVals[x] = [];
+            for (let y = 0; y < this.height; y++){
+                this.boardVals[x].push(0)
+            }
+        }
+
+        Object.keys(this.players).forEach(player => { //lagrer players i form av sprite
+            this.players[player] = PIXI.Texture.from(this.players[player])
+        });
+
+        this.resize();  
+
+        graphics.clear();
+
+        
+    }
+    endGame(){ 
+        //vise start game screen
+
+        setTimeout(function(){
+            //document.getElementById("endGamePopup").style.display = "flex";
+            document.getElementById("endGamePopup").style.opacity = 1;
+            document.getElementById("endGamePopup").style.pointerEvents = "auto";
+
+        },1000)
     }
 }
 
@@ -379,13 +435,58 @@ function startGame(){
 startGame();
 
 function restartGame(){
-    game.delete();
-    delete game
-
-    console.log(game)
-    
-    startGame();
+    game.restart(7,7,{
+        1: "assets/red.png",
+        2: "assets/black.png"
+    });
 }
+
+function getPageElements(){
+    //hent sideelementer
+    var startButton = document.getElementById("startGame")
+    startButton.addEventListener("click",startHandler)
+}
+
+const colors = []
+const supColors = 8 //hvor manges spillere som kan spille
+colors.push("assets/red.png")
+colors.push("assets/black.png")
+colors.push("assets/blue.png")
+colors.push("assets/green.png")
+colors.push("assets/orange.png")
+colors.push("assets/purple.png")
+colors.push("assets/pink.png")
+colors.push("assets/yellow.png")
+
+function startHandler(){
+
+    let nPlayers = document.getElementById("numPlayers").value;
+    let players = {}
+
+    for (let i = 0; i < nPlayers; i++){
+        players[i+1] = colors[i]
+    }
+
+    let xSize = document.getElementById("xSize").value;
+    let ySize = document.getElementById("ySize").value;
+    
+
+    //document.getElementById("endGamePopup").style.display = "none";
+    document.getElementById("endGamePopup").style.opacity = 0;
+    document.getElementById("endGamePopup").style.pointerEvents = "none";
+    if (isNaN(parseInt(xSize)) || isNaN(parseInt(ySize)) || Object.keys(players) == 0) {
+        game.restart(7,6,{
+            1: "assets/red.png",
+            2: "assets/black.png"
+        });
+    } else {
+        game.restart(parseInt(xSize),parseInt(ySize),players)
+    }
+}
+
+const doEval = true;
+window.onload = getPageElements
 
 
 //resizer fungerer ikke alltid i enkelte ekstreme tilfeller
+//fikse win når brettet er større
