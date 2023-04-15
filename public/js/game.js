@@ -339,7 +339,7 @@ class Game {
             }
         }
 
-        if (doEval){evaluate();} //evaluer posisjonen
+        if (doEval){console.log(evaluate(this.boardVals,depth,this.turn,aiTurn));} //evaluer posisjonen
 
         if (found == false){
             this.endGame();
@@ -484,7 +484,11 @@ function startHandler(){
     }
 }
 
-const doEval = true;
+const doEval = true; //om posisjonen skal evalueres
+const depth = 5; //hvor dypt aien skal søke
+
+var aiTurn = 1 //hvilken turn er aien
+
 window.onload = getPageElements
 
 

@@ -1,8 +1,6 @@
 var evaluation = 0
 
 //generic board, win in one for rød
-turn = 1 //turn 1, første turn
-aiTurn = 1 //hvilken turn er aien
 
 var height = 6
 var width = 7
@@ -16,29 +14,26 @@ for (let x = 0; x < width; x++){
     }
 }
 
-boardValss[0][5] = 1
-boardValss[1][5] = 1
-
-let depth = 10
-
-console.log(evaluate(boardValss) + " eval")
-
-function evaluate(incBoard){ //evaluer posisjonen
+function evaluate(incBoard,depth,turn,aiTurn){ //evaluer posisjonen
     let boardVals = incBoard
     let highestEval = 0
+
+    if (depth < 0){ //hvis dybden er nådd
+        return 0
+    }
 
     //sjekk om det er et move som vinner spillet
 
     for (let i = 0; i < width; i++){
-        console.log(i)
         
         //hvis noen har vunnet eller tapt
-        if (checkWin(boardVals,turn,aiTurn,winLength,width,height)){
-            console.log(boardVals)
+        let winResult = checkWin(boardVals,turn,aiTurn,winLength,width,height)
+        if (winResult > 0){
             return 1
+        } else if(winResult < 0){
+            return -1
         } else if(checkDraw(boardVals,width,height)){
             return 0
-        
         } else {
 
             //sjekker om det er et valid move for ai-en å gjøre i kolonnen i
@@ -50,27 +45,46 @@ function evaluate(incBoard){ //evaluer posisjonen
                     break
                 }
             }
-            
+
 
             if (!(row == -1)){ //hvis ikke kolonnen fylt
             
-                let nextBoard = boardVals
-                nextBoard[i][row] = aiTurn //lagrer neste board
+                let nextBoard = copyBoard(boardVals)
+                let nextDepth = depth - 1
+                if (!(turn == aiTurn)){
+                    nextBoard[i][row] = turn
+                } else {
+                    nextBoard[i][row] = aiTurn //lagrer neste board
+                }
 
-                console.log("checking " + i + [row])
-                let nextIteration = evaluate(nextBoard)
+                //console.log("checking " + i + [row])
+                //console.log(nextBoard)
+
+                let max_turns = 2
+
+                if (turn == max_turns) { //
+                    nextTurn = 1;
+            
+                } else {
+                    nextTurn = turn + 1
+                }
+
+                let nextIteration = evaluate(nextBoard,nextDepth,nextTurn,aiTurn)
 
                 if (nextIteration > 0){ //hvis brettet framover vinner
-                    if (nextIteration < highestEval){
+                    if ((nextIteration < highestEval && Math.abs(nextIteration) < Math.abs(highestEval)) || highestEval == 0 ){
                         highestEval = nextIteration
+                    }
+                } else if (nextIteration < 0 ){
+                    if (nextIteration < highestEval && Math.abs(nextIteration) < Math.abs(highestEval) || highestEval == 0){
+                        highestEval = nextIteration
+                        console.log("lost")
                     }
                 }
             }
         }
     }
-
     if (highestEval > 0){ //hvis brettet framover vinner
-        console.log(highestEval)
         return highestEval + 1
     }
 
@@ -127,8 +141,11 @@ function checkWin(boardVals,turn,aiTurn,winLength,width,height){
 
     if (haswon){
         if (turn == aiTurn){
+            console.log("winning")
             return 1
         } else if(!(turn == aiTurn)){
+            console.log("loosing")
+
             return -1
         }
     }
@@ -148,4 +165,17 @@ function checkDraw(boardVals,width, height){
                 break
             }
         }
+}
+
+copyBoard(boardValss)
+
+function copyBoard(boardVals){  //metode for å kopiere brettet, uten å lage pointers
+    let buffer = {}
+    for (let a = 0; a < Object.keys(boardVals).length ;a++){
+        buffer[a] = []
+        for (let b = 0; b < boardVals[a].length; b++){
+            buffer[a].push(boardVals[a][b])
+        }
+    }
+    return buffer
 }
