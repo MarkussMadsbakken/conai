@@ -28,7 +28,7 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     width: 60%; 
-    height: 50%;
+    height: 60%;
 
     align-items: center;
     flex-direction: column;
@@ -45,6 +45,10 @@ body {
     margin-top: 4vh;
     text-align: center;
     width: 80%;
+}
+
+#extras{
+    margin-top: 4vh;
 }
 
 #startGame{
@@ -86,4 +90,17 @@ body {
 
 .field:focus{
     outline-width: 0;
+}
+
+#playAgainstAi{
+    align-items: center;
+    flex-direction: row;
+    display: flex;
+    
+}
+  
+.check{
+    border-radius: 1px;
+    width: 4vw;
+    height: 4vh;
 }

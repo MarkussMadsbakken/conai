@@ -1,6 +1,7 @@
 let window_width = window.innerWidth;
 let window_heigth = window.innerHeight;
 
+//pixi init
 const app = new PIXI.Application({ background: '#cccccc ', resizeTo: document.getElementById("game"), antialias: true});
 app.ticker.maxFPS = 30;
 
@@ -24,13 +25,13 @@ const redTexture = PIXI.Texture.from('assets/red.png');
 
 
 class Game {
-    constructor(width, height,players){
+    constructor(width,height,players){
         console.log(players)
         this.width = width;
         this.height = height;
         this.players = players; 
         this.boardTexture = PIXI.Texture.from('assets/board.png') //boardTexture
-        this.holeTexture = PIXI.Texture.from('assets/hole.png')
+        this.holeTexture = PIXI.Texture.from('assets/hole.png') //holetexture
 
         this.padding = 2 //padding mellom elementer i prosent av total størrelse av canvas
         this.column = 0
@@ -45,12 +46,13 @@ class Game {
         //initiere sprites
         this.board = new PIXI.Sprite(this.boardTexture);
 
-        Object.keys(this.players).forEach(player => { //lagrer players i form av sprite
+        //lagrer players i form av sprite
+        Object.keys(this.players).forEach(player => { 
             this.players[player] = PIXI.Texture.from(this.players[player])
         });
 
 
-        //lager lister som lagrer brikkene i spill
+        //lager brettet
         this.boardVals = {}
         for (let x = 0; x < this.width; x++){
             this.boardVals[x] = [];
@@ -61,22 +63,45 @@ class Game {
 
         console.log(this.boardVals) //debug
 
-        app.stage.interactive = true; //sett interactivity 
+        app.stage.interactive = true; //sett interactivity ENDRE!!
 
+
+        //event listeners
         app.stage.addEventListener("pointermove", (e) => {
             this.pointerMove(e.global);
         })
 
         app.stage.addEventListener("click", (e) =>{
-            this.place(e.global,this.turn);
+            this.place(this.column,this.turn,this.row);
+
+            if (doEval){if (this.turn == aiTurn){
+                console.log(this.eval) 
+                this.draw()
+    
+                let nMove = Number(this.eval[1].split("-")[0])
+                console.log(nMove)
+
+                let row = -1
+
+                for (let j = 0; j < height+1; j++){
+                    if (this.boardVals[nMove][height-j] == 0){ //move er valid
+                        row = height - j
+                        break
+                    }
+            }
+                this.place(nMove,aiTurn,row)
+                this.draw()
+            }}
+            this.pointerMove(e.global); //dette kaller draw hvis row ikke er 0
         })
     
-        this.resize(); //kaller resize når spillet starter
+        this.resize(); //kall resize når spillet starter
     }
 
     pointerMove(pos){
 
         if (this.haswon) {return;} //ikke oppdater når noen har vunnet
+
         //finner hvilken kolonne musen er over
         this.column = this.getColumn(pos);
 
@@ -91,29 +116,29 @@ class Game {
                 let waitingSprite = new PIXI.Sprite(this.players[this.turn])
                 let padding = (this.board.width/100) * this.padding
 
-                let newSize = (this.board.width - ((this.width + 2) * padding)) / this.width
+                let newSize = (this.board.width - ((this.width + 2) * padding)) / this.width //kalkulerer ny størrelse
 
                 waitingSprite.width = newSize
                 waitingSprite.height = newSize
 
                 waitingSprite.alpha = 0.5 //transparent
 
+                //plasserer waitingsprite
                 waitingSprite.x = (this.column * (((this.board.width - (padding)) / this.width))) + this.board.x + padding
                 waitingSprite.y = ((this.height-i) * (((this.board.height - (padding)) / this.height))) + this.board.y + padding
                 backgroundContainer.addChild(waitingSprite)
-
-                this.row = this.height-i
+                
+                //lagrer raden prikken skal plasseres i
+                this.row = this.height-i 
 
                 return;
 
             }
         }
-        //plasser en grå/waiting texture
-
-
     }
 
-    nextPlayer(){
+    nextPlayer(){ //neste spiller
+
         if (this.turn == Object.keys(this.players).length) { //
             this.turn = 1;
 
@@ -122,28 +147,29 @@ class Game {
         }
     }
 
-    place(pos,player){ //funksjon for å plassere brikke
+    place(column,player,row){ //funksjon for å plassere brikke
 
-        console.log(this.boardVals)
+        //console.log(this.boardVals) //debug
 
         if (this.haswon) {return;} //ikke oppdater når noen har vunnet
 
         //sjekke om et move er valid
-        if (!this.boardVals[this.column][this.row] == 0){ //hvis plassen er fylt
+        if (!this.boardVals[column][row] == 0){ //hvis plassen er fylt
+            console.log("invalid, fylt")
             return; //move invalid
         }
 
-        if (this.boardVals[this.column][this.row + 1] == 0){ //hvis det ikke er en brikke under
+        if (this.boardVals[column][row + 1] == 0){ //hvis det ikke er en brikke under
+            console.log("invalid")
             return //move invalid
         }
 
-        this.boardVals[this.column][this.row] = player //vi antar at spilleren har hoveret over brettet
+        this.boardVals[column][row] = player //vi antar at spilleren har hoveret over brettet
 
         //neste player
         this.nextPlayer();
 
         if (this.row == 0){this.draw(); this.checkWin(); return;}; //hvis row er 0, draw og return
-        this.pointerMove(pos); //dette kaller draw hvis row ikke er 0
 
         this.checkWin(); //sjekker om en spiller har vunnet
 
@@ -173,12 +199,14 @@ class Game {
         backgroundContainer.addChild(this.board);
 
         for (let x = 0; x < this.width; x++){ //looper igjennom lengden av brettet
+            
+            //kalkulerer padding og størrelse
             let padding = (this.board.width/100) * this.padding
             let newSize = (this.board.width - ((this.width + 2) * padding)) / this.width
 
             for (let y = 0; y < this.height; y++){ //looper igjennom høyden av brettet
 
-                    if (this.boardVals[x][y] == 0){ //hvis det ikke er en brikke i hullet
+                if (this.boardVals[x][y] == 0){ //hvis det ikke er en brikke i hullet
                     let hole = new PIXI.Sprite(this.holeTexture); //initierer sprite
 
                     //((this.board.width / 100) * this.padding* (x+1)) + this.board.x
@@ -188,7 +216,7 @@ class Game {
                     hole.width = newSize
                     hole.height = newSize
                 
-                
+                    //plasserer hull
                     hole.x = (x * (((this.board.width - (padding)) / this.width))) + this.board.x + padding
                     hole.y = (y * (((this.board.height - (padding)) / this.height))) + this.board.y + padding
 
@@ -212,6 +240,7 @@ class Game {
     }
 
     drawWin(winx,winy){
+        //fungerer ikke ved 
         graphics.lineStyle(5,0xFFFFFF,1);
 
         let padding = (this.board.width/100) * this.padding
@@ -230,8 +259,7 @@ class Game {
 
         backgroundContainer.addChild(graphics)
 
-        this.endGame();
-
+        this.endGame(); //avslutt spillet
     }
 
     resize(){
@@ -270,6 +298,7 @@ class Game {
     }
     
     checkWin(){
+        //endre dette til en for løkke for å gjøre det mulig å endre win lenght
         let winx = []
         let winy = []
 
@@ -314,7 +343,7 @@ class Game {
                 }
                 
                 //skrå opp til venstre
-                if(y > this.winLength - 2 && x > this.winLength - 1){
+                if(y > this.winLength-  2 && x > this.winLength - 2){
                     if (this.boardVals[x][y] == this.boardVals[x-1][y-1] && this.boardVals[x][y] == this.boardVals[x-2][y-2] && this.boardVals[x][y] == this.boardVals[x-3][y-3] && !this.boardVals[x][y] == 0){
                         winx = [x,x-3];
                         winy = [y,y-3];
@@ -339,7 +368,9 @@ class Game {
             }
         }
 
-        if (doEval){console.log(evaluate(this.boardVals,depth,this.turn,aiTurn));} //evaluer posisjonen
+        if (doEval){
+            this.eval = evaluate(this.boardVals,depth,this.turn,aiTurn); //evaluerer posisjonen
+        }
 
         if (found == false){
             this.endGame();
@@ -449,6 +480,8 @@ function getPageElements(){
 
 const colors = []
 const supColors = 8 //hvor manges spillere som kan spille
+
+//tullete måte å gjøre det på, men det fungerer
 colors.push("assets/red.png")
 colors.push("assets/black.png")
 colors.push("assets/blue.png")
@@ -469,6 +502,7 @@ function startHandler(){
 
     let xSize = document.getElementById("xSize").value;
     let ySize = document.getElementById("ySize").value;
+    doEval = document.querySelector('#aiCheck').checked;
     
 
     //document.getElementById("endGamePopup").style.display = "none";
@@ -484,11 +518,10 @@ function startHandler(){
     }
 }
 
-const doEval = true; //om posisjonen skal evalueres
-const depth = 5; //hvor dypt aien skal søke
+var doEval = true; //om posisjonen skal evalueres
+var depth = 5; //hvor dypt aien skal søke
 
-var aiTurn = 1 //hvilken turn er aien
-
+var aiTurn = 2 //hvilken turn er aien
 window.onload = getPageElements
 
 
